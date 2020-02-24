@@ -17,16 +17,16 @@ mainClassName = 'MainKt'
 repositories {
     mavenCentral()
     jcenter()
-    maven { url "https://dl.bintray.com/libly/maven" }
+    maven { url 'https://dl.bintray.com/libly/maven' }
 }
 
 dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'                        // Kotlin API
     implementation "io.ktor:ktor-server-core:$ktor_version"                         // Kotlin sockets
     implementation "io.ktor:ktor-network:$ktor_version"                             // Kotlin networking
-    implementation "com.google.guava:guava:28.2-jre"                                // Hashing tools
-    implementation "com.goterl.lazycode:lazysodium-java:4.2.5"                      // LibSodium wrapper
-    implementation "net.java.dev.jna:jna:5.5.0"                                     // Native access for LazySodium
+    implementation 'com.google.guava:guava:28.2-jre'                                // Hashing tools
+    implementation 'com.goterl.lazycode:lazysodium-java:4.2.5'                      // LibSodium wrapper
+    implementation 'net.java.dev.jna:jna:5.5.0'                                     // Native access for LazySodium
     implementation 'co.libly:resource-loader:1.3.6'                                 // Library loader for LazySodium
     implementation 'commons-codec:commons-codec:1.14'                               // Binary tools
     implementation "com.google.protobuf:protobuf-java:$protoc_version"              // Protobuf runtime
@@ -37,10 +37,10 @@ dependencies {
 Closure kotlinCompilationOptions = {
     kotlinOptions {
         jvmTarget = '1.8'
-        freeCompilerArgs += "-Xuse-experimental=" + [
-                "kotlin.time.ExperimentalTime",
-                "io.ktor.util.KtorExperimentalAPI"
-        ].join(",")
+        freeCompilerArgs += '-Xuse-experimental=' + [
+                'kotlin.time.ExperimentalTime',
+                'io.ktor.util.KtorExperimentalAPI'
+        ].join(',')
     }
 }
 
@@ -58,6 +58,6 @@ protobuf {
 }
 
 shadowJar {
-    archiveClassifier.set ""
-    archiveVersion.set ""
+    archiveClassifier.set ''
+    archiveVersion.set ''
 }
