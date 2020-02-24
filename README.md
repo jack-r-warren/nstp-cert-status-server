@@ -1,18 +1,30 @@
 # nstp-cert-status-server
-## Jack Warren
+## [Jack Warren](jackwarren.info)
 ### Usage
 ```
 Options:
-  --ip TEXT           The IP to run on (default 0.0.0.0)
-  --port INT          The port to run on (default 22301)
-  --allow FILE        Files containing certs to approve; may be provided
-                      multiple times
-  --deny FILE         Files containing certs to deny; may be provided multiple
-                      times
-  --certificate FILE  The certificate to include with responses (required)
-  --key FILE          The private key for the status server certificate
-                      (required)
-  -h, --help          Show this message and exit
+  --ip TEXT                     The IP to run on (default 0.0.0.0)
+  --port INT                    The port to run on (default 22301)
+  --allow FILE                  Files containing certs to approve; may be
+                                provided multiple times
+  --deny FILE                   Files containing certs to deny; may be
+                                provided multiple times
+  --certificate FILE            The certificate to include with responses
+                                (required)
+  --key FILE                    The private key for the status server
+                                certificate (required)
+  --valid, --invalid, --ignore  Set how you'd like the server to respond to
+                                messages (default valid) (valid: Respond
+                                normally) (invalid: Respond with messages that
+                                are incorrect in some way) (ignore: Ignore all
+                                messages)
+  --silent, --print, --verbose  Set how much output you'd like (default
+                                silent) (silent: As quiet as possible, though
+                                errors (intentional or unintentional) will be
+                                printed) (print: Print when a response is
+                                sent) (verbose: Print the actual content of
+                                every response (null means nothing sent))
+  -h, --help                    Show this message and exit
 ```
 
 Both the `allow` and `deny` parameters can handle Certificate and CertificateStore protobufs (written to disk, of course).
