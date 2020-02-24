@@ -1,3 +1,4 @@
+import NstpV4.HashAlgorithm.*
 import com.google.common.hash.Hashing
 import com.goterl.lazycode.lazysodium.LazySodiumJava
 import com.goterl.lazycode.lazysodium.SodiumJava
@@ -31,10 +32,10 @@ fun ByteArray.verifySign(sign: ByteArray, publicKey: ByteArray) = let { input ->
 @Suppress("UnstableApiUsage")
 fun ByteArray.hash(algorithm: NstpV4.HashAlgorithm): ByteArray =
     when (algorithm) {
-        NstpV4.HashAlgorithm.IDENTITY -> this.also {
+        IDENTITY -> this.also {
             println("Warning! ByteArray hashed using identity!")
         }
-        NstpV4.HashAlgorithm.SHA256 -> Hashing.sha256().hashBytes(this).asBytes()
-        NstpV4.HashAlgorithm.SHA512 -> Hashing.sha512().hashBytes(this).asBytes()
-        NstpV4.HashAlgorithm.UNRECOGNIZED -> throw IllegalArgumentException("Unknown algorithm $algorithm")
+        SHA256 -> Hashing.sha256().hashBytes(this).asBytes()
+        SHA512 -> Hashing.sha512().hashBytes(this).asBytes()
+        UNRECOGNIZED -> throw IllegalArgumentException("Unknown algorithm $algorithm")
     }
