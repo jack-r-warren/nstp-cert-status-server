@@ -13,6 +13,7 @@ fun NstpV4.CertificateHashOrBuilder.byteDigest(): ByteArray = let { hash ->
 infix fun NstpV4.CertificateHashOrBuilder.isIn(certificates: Iterable<NstpV4.Certificate>) =
     certificates.any { it.matches(this) }
 
+// includeSignature should be true when this is for a hash and false when this is for a signature
 fun NstpV4.CertificateOrBuilder.byteDigest(includeSignature: Boolean = true): ByteArray = let { cert ->
     buildPacket {
         cert.subjectsList.map { it.toByteArray() }.forEach { writeFully(it) }
