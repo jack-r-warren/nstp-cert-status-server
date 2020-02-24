@@ -1,12 +1,7 @@
-import NstpV4.CertificateStatus.*
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.multiple
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
-import com.google.protobuf.ByteString
 import io.ktor.network.selector.ActorSelectorManager
 import io.ktor.network.sockets.Datagram
 import io.ktor.network.sockets.aSocket
@@ -17,7 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.net.InetSocketAddress
-import java.time.Instant
+import java.net.SocketAddress
 
 object StatusServer : CliktCommand(
     help = "Run a rudimentary status server",
@@ -50,15 +45,40 @@ object StatusServer : CliktCommand(
         names = *arrayOf("--key")
     ).file(folderOkay = false, exists = true, readable = true).required()
 
-    private val allowCerts by lazy { allow.toLoC() }
-    private val denyCerts by lazy { deny.toLoC() }
-    private val selfCertificate: NstpV4.Certificate by lazy {
+    private val responseType by option(
+        help = "Set how you'd like the server to respond to messages (default valid)",
+        helpTags = mapOf(
+            "valid" to "Respond normally",
+            "invalid" to "Respond with messages that are incorrect in some way",
+            "ignoring" to "Ignore all messages"
+        )
+    ).switch(
+        "--valid" to ResponseBuilder.Valid,
+        "--invalid" to ResponseBuilder.Invalid,
+        "--ignoring" to ResponseBuilder.Ignoring
+    ).default(ResponseBuilder.Valid)
+
+    private val verbosity by option(
+        help = "Set how much output you'd like (default silent)",
+        helpTags = mapOf(
+            "silent" to "As quiet as possible, though errors (intentional or unintentional) will be printed",
+            "print" to "Print when a response is sent",
+            "verbose" to "Print the actual content of every response (null means nothing sent)"
+        )
+    ).switch(
+        "--silent" to { _: Any?, _: SocketAddress -> },
+        "--print" to { content: Any?, from: SocketAddress -> if (content != null) echo("Responded to $from") },
+        "--verbose" to { content: Any?, from: SocketAddress -> echo("Responded to $from with \n${content.toString()}") }
+    ).default { _: Any?, _: SocketAddress -> }
+
+    val allowCerts by lazy { allow.toListOfCertificate() }
+    val denyCerts by lazy { deny.toListOfCertificate() }
+    val selfCertificate: NstpV4.Certificate by lazy {
         NstpV4.Certificate.parseFrom(certificateFile.readBytes())
     }
-    private val selfPrivateKey: NstpV4.PrivateKey by lazy {
+    val selfPrivateKey: NstpV4.PrivateKey by lazy {
         NstpV4.PrivateKey.parseFrom(privateKeyFile.readBytes())
     }
-
 
     override fun run() = runBlocking {
         echo("Will mark ${allow.size} certs as valid")
@@ -78,22 +98,11 @@ object StatusServer : CliktCommand(
                         } catch (_: Throwable) {
                             echo("Couldn't parse message from ${datagram.address}, ignoring")
                             return@let
-                        }.let { it ->
-                            NstpV4.CertificateStatusResponse.newBuilder().apply {
-                                this.certificate = it.certificate
-                                status = when {
-                                    it.certificate isIn denyCerts -> REVOKED
-                                    it.certificate isIn allowCerts -> VALID
-                                    else -> UNKNOWN
-                                }
-                                validFrom = Instant.now().epochSecond
-                                validLength = 10
-                                statusCertificate = selfCertificate
-                                statusSignature = ByteString.copyFrom(
-                                    sign(selfPrivateKey.signingPrivateKey.toByteArray())
-                                )
-                            }
-                        }.build().toByteArray().let {
+                        }.let {
+                            with(responseType) { makeResponse(it) }
+                        }.also {
+                            verbosity.invoke(it, datagram.address)
+                        }?.toByteArray()?.let {
                             try {
                                 socket.send(Datagram(ByteReadPacket(it), datagram.address))
                             } catch (_: Throwable) {
@@ -104,7 +113,7 @@ object StatusServer : CliktCommand(
             }
     }
 
-    private fun List<File>.toLoC(): List<NstpV4.Certificate> = flatMap { file ->
+    private fun List<File>.toListOfCertificate(): List<NstpV4.Certificate> = flatMap { file ->
         file.readBytes().let {
             try {
                 NstpV4.Certificate.parseFrom(it).run {
