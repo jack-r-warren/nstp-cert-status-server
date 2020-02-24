@@ -54,5 +54,5 @@ fun NstpV4.CertificateStatusResponseOrBuilder.byteDigest(): ByteArray = let { re
 fun NstpV4.CertificateStatusResponseOrBuilder.sign(privateKey: ByteArray): ByteArray =
     byteDigest().sign(privateKey)
 
-fun NstpV4.CertificateStatusResponse.verifySignature(): Boolean =
+fun NstpV4.CertificateStatusResponseOrBuilder.verifySignature(): Boolean =
     byteDigest().verifySign(statusSignature.toByteArray(), statusCertificate.signingPublicKey.toByteArray())

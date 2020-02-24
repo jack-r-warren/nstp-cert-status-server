@@ -41,7 +41,6 @@ Closure kotlinCompilationOptions = {
                 "kotlin.time.ExperimentalTime",
                 "io.ktor.util.KtorExperimentalAPI"
         ].join(",")
-
     }
 }
 
