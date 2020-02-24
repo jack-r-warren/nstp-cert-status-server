@@ -26,7 +26,7 @@ From root of project, run:
 docker build -t nstp-cert-status-server .
 ```
 
-The `nstp-cert-status-server` container will still need to be passed arguments and given access to a port:
+The `nstp-cert-status-server` container will still need to be passed arguments and files and given access to a port:
 
 ```
 docker run -v /tmp/:/tmp/ -p 22301:22301/udp nstp-cert-status-server [OPTIONS]
@@ -38,6 +38,6 @@ From root of project, run:
 ./gradlew run [OPTIONS]
 ```
 
-This will compile and run directly from source. It requires JDK8 and LibSodium to be available.
+This will compile and run directly from source. It requires JDK8 and LibSodium to be available on your machine.
 
 If you'd like to produce a `.jar`, run `./gradlew shadowJar` and use `build/libs/nstp-cert-status-server.jar` 
