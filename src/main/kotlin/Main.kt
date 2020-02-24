@@ -50,12 +50,12 @@ object StatusServer : CliktCommand(
         helpTags = mapOf(
             "valid" to "Respond normally",
             "invalid" to "Respond with messages that are incorrect in some way",
-            "ignoring" to "Ignore all messages"
+            "ignore" to "Ignore all messages"
         )
     ).switch(
         "--valid" to ResponseBuilder.Valid,
         "--invalid" to ResponseBuilder.Invalid,
-        "--ignoring" to ResponseBuilder.Ignoring
+        "--ignore" to ResponseBuilder.Ignore
     ).default(ResponseBuilder.Valid)
 
     private val verbosity by option(

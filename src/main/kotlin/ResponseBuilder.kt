@@ -33,7 +33,7 @@ sealed class ResponseBuilder {
             validResponseHelper(request).build()
     }
 
-    object Ignoring : ResponseBuilder() {
+    object Ignore : ResponseBuilder() {
         override fun StatusServer.makeResponse(request: NstpV4.CertificateStatusRequest): NstpV4.CertificateStatusResponse? {
             return null
         }
@@ -91,7 +91,7 @@ sealed class ResponseBuilder {
                         issuerSignature = ByteString.copyFrom(
                             "foo".toByteArray().sign(selfPrivateKey.signingPrivateKey.toByteArray())
                         )
-                    }.build().alsoDescribe("Wrong status cert status cert signature")
+                    }.build().alsoDescribe("Wrong status status cert signature")
                 }
 
                 // Either fix the signature or mess it up intentionally
