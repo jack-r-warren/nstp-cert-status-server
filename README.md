@@ -41,3 +41,9 @@ From root of project, run:
 This will compile and run directly from source. It requires JDK8 and LibSodium to be available on your machine.
 
 If you'd like to produce a `.jar`, run `./gradlew shadowJar` and use `build/libs/nstp-cert-status-server.jar` 
+
+### Source
+
+This is written in Kotlin. I strongly recommend using IntelliJ, especially for people that aren't used to Kotlin. I use a lot of scoping functions and IntelliJ will overlay the types to make it readable.
+
+Only the NSTP protobuf spec is included, not the generated code. To get the generated code, **don't use `protoc`**, instead just run `./gradlew generateProto` from the root of the project and it'll take care of it. 
