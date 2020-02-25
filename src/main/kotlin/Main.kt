@@ -118,14 +118,14 @@ object StatusServer : CliktCommand(
         flatMap { file ->
             file.readBytes().let { bytes ->
                 kotlin.runCatching { NstpV4.Certificate.parseFrom(bytes) }.getOrNull()
-                    ?.let { return@flatMap listOf(it) }
+                    ?.run { if (isInitialized) return@flatMap listOf(this) }
                 kotlin.runCatching { NstpV4.CertificateStore.parseFrom(bytes) }.getOrNull()
-                    ?.let { return@flatMap it.certificatesList }
-                kotlin.runCatching { NstpV4.PinnedCertificateStore.parseFrom(bytes) }.getOrNull()?.let {
-                    throw IllegalArgumentException("$file was not a Certificate or CertificateStore, it was a PinnedCertificateStore")
+                    ?.run { if (isInitialized) return@flatMap certificatesList }
+                kotlin.runCatching { NstpV4.PinnedCertificateStore.parseFrom(bytes) }.getOrNull()?.run {
+                    if (isInitialized) throw IllegalArgumentException("$file was not a Certificate or CertificateStore, it was a PinnedCertificateStore")
                 }
-                kotlin.runCatching { NstpV4.PrivateKey.parseFrom(bytes) }.getOrNull()?.let {
-                    throw IllegalArgumentException("$file was not a Certificate or CertificateStore, it was a PrivateKey")
+                kotlin.runCatching { NstpV4.PrivateKey.parseFrom(bytes) }.getOrNull()?.run {
+                    if (isInitialized) throw IllegalArgumentException("$file was not a Certificate or CertificateStore, it was a PrivateKey")
                 }
                 throw IllegalArgumentException("$file was not a Certificate or CertificateStore")
             }
