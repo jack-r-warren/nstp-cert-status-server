@@ -67,9 +67,9 @@ object StatusServer : CliktCommand(
             "verbose" to "Print the actual content of every response (null means nothing sent)"
         )
     ).switch(
-        "--silent" to { _: Any?, _: SocketAddress -> },
-        "--print" to { content: Any?, from: SocketAddress -> if (content != null) echo("Responded to $from") },
-        "--verbose" to { content: Any?, from: SocketAddress -> echo("Responded to $from with \n${content.toString()}") }
+        "--silent" to { _: NstpV4.CertificateStatusResponse?, _: SocketAddress -> },
+        "--print" to { content: NstpV4.CertificateStatusResponse?, from: SocketAddress -> content?.run { echo("Responded to $from with $status") } },
+        "--verbose" to { content: NstpV4.CertificateStatusResponse?, from: SocketAddress -> echo("Responded to $from with ${content?.run { status }}\n${content.toString()}") }
     ).default { _: Any?, _: SocketAddress -> }
 
     val allowCerts by lazy { allow.toListOfCertificate() }
@@ -84,6 +84,7 @@ object StatusServer : CliktCommand(
     override fun run() = runBlocking {
         echo("Will mark ${allow.size} certs as valid")
         echo("Will mark ${deny.size} certs as revoked")
+        if (allow.isEmpty() && deny.isEmpty()) echo("No certificates passed to --allow or --deny, will mark all as UNKNOWN")
         aSocket(ActorSelectorManager(Dispatchers.IO))
             .udp()
             .bind(InetSocketAddress(ip, port))
