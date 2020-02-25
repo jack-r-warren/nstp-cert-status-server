@@ -13,7 +13,7 @@ fun NstpV4.CertificateHashOrBuilder.byteDigest(): ByteArray = let { hash ->
 infix fun NstpV4.CertificateHashOrBuilder.isIn(certificates: Iterable<NstpV4.Certificate>) =
     certificates.any { it.matches(this) }
 
-// includeSignature should be true when this is for a hash and false when this is for a signature
+// includeSignature should only be false when calculating the byteDigest for use in a certificate signature
 fun NstpV4.CertificateOrBuilder.byteDigest(includeSignature: Boolean = true): ByteArray = let { cert ->
     buildPacket {
         cert.subjectsList.map { it.toByteArray() }.forEach { writeFully(it) }
@@ -48,7 +48,7 @@ fun NstpV4.CertificateStatusResponseOrBuilder.byteDigest(): ByteArray = let { re
             putLong(response.validFrom)
             putInt(response.validLength)
         }.let { writeFully(it.flip()) }
-        writeFully(response.statusCertificate.byteDigest(false))
+        writeFully(response.statusCertificate.byteDigest())
     }.readBytes()
 }
 
