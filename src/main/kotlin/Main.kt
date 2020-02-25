@@ -11,6 +11,7 @@ import io.ktor.utils.io.core.readBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import kotlin.IllegalArgumentException
 import java.net.InetSocketAddress
 import java.net.SocketAddress
 
@@ -113,21 +114,22 @@ object StatusServer : CliktCommand(
             }
     }
 
-    private fun List<File>.toListOfCertificate(): List<NstpV4.Certificate> = flatMap { file ->
-        file.readBytes().let {
-            try {
-                NstpV4.Certificate.parseFrom(it).run {
-                    if (isInitialized) listOf(this)
-                    else throw IllegalStateException()
+    private fun List<File>.toListOfCertificate(): List<NstpV4.Certificate> =
+        flatMap { file ->
+            file.readBytes().let { bytes ->
+                kotlin.runCatching { NstpV4.Certificate.parseFrom(bytes) }.getOrNull()
+                    ?.let { return@flatMap listOf(it) }
+                kotlin.runCatching { NstpV4.CertificateStore.parseFrom(bytes) }.getOrNull()
+                    ?.let { return@flatMap it.certificatesList }
+                kotlin.runCatching { NstpV4.PinnedCertificateStore.parseFrom(bytes) }.getOrNull()?.let {
+                    throw IllegalArgumentException("$file was not a Certificate or CertificateStore, it was a PinnedCertificateStore")
                 }
-            } catch (_: Throwable) {
-                NstpV4.CertificateStore.parseFrom(it).run {
-                    if (isInitialized) certificatesList
-                    else throw IllegalArgumentException("File $file wasn't a Certificate or CertificateStore message")
+                kotlin.runCatching { NstpV4.PrivateKey.parseFrom(bytes) }.getOrNull()?.let {
+                    throw IllegalArgumentException("$file was not a Certificate or CertificateStore, it was a PrivateKey")
                 }
+                throw IllegalArgumentException("$file was not a Certificate or CertificateStore")
             }
         }
-    }
 }
 
 fun main(args: Array<String>) = StatusServer.main(args)
