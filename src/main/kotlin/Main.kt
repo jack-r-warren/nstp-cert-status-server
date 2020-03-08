@@ -85,34 +85,41 @@ object StatusServer : CliktCommand(
         echo("Will mark ${allow.size} certs as valid")
         echo("Will mark ${deny.size} certs as revoked")
         if (allow.isEmpty() && deny.isEmpty()) echo("No certificates passed to --allow or --deny, will mark all as UNKNOWN")
-        aSocket(ActorSelectorManager(Dispatchers.IO))
-            .udp()
-            .bind(InetSocketAddress(ip, port))
-            .use { socket ->
-                while (!socket.isClosed)
-                    (try {
-                        socket.receive()
-                    } catch (_: Throwable) {
-                        null
-                    })?.let { datagram ->
-                        try {
-                            NstpV4.CertificateStatusRequest.parseFrom(datagram.packet.readBytes())
-                        } catch (_: Throwable) {
-                            echo("Couldn't parse message from ${datagram.address}, ignoring")
-                            return@let
-                        }.let {
-                            with(responseType) { makeResponse(it) }
-                        }.also {
-                            verbosity.invoke(it, datagram.address)
-                        }?.toByteArray()?.let {
-                            try {
-                                socket.send(Datagram(ByteReadPacket(it), datagram.address))
+        while (true) {
+            try {
+                aSocket(ActorSelectorManager(Dispatchers.IO))
+                    .udp()
+                    .bind(InetSocketAddress(ip, port))
+                    .use { socket ->
+                        while (!socket.isClosed)
+                            (try {
+                                socket.receive()
                             } catch (_: Throwable) {
-                                echo("Socket closed before a response to ${datagram.address} could be sent")
+                                null
+                            })?.let { datagram ->
+                                try {
+                                    NstpV4.CertificateStatusRequest.parseFrom(datagram.packet.readBytes())
+                                } catch (_: Throwable) {
+                                    echo("Couldn't parse message from ${datagram.address}, ignoring")
+                                    return@let
+                                }.let {
+                                    with(responseType) { makeResponse(it) }
+                                }.also {
+                                    verbosity.invoke(it, datagram.address)
+                                }?.toByteArray()?.let {
+                                    try {
+                                        socket.send(Datagram(ByteReadPacket(it), datagram.address))
+                                    } catch (_: Throwable) {
+                                        echo("Socket closed before a response to ${datagram.address} could be sent")
+                                    }
+                                }
                             }
-                        }
                     }
+                break
+            } catch (e: Exception) {
+                println("oops")
             }
+        }
     }
 
     private fun List<File>.toListOfCertificate(): List<NstpV4.Certificate> =
