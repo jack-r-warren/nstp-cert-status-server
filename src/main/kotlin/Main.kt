@@ -11,9 +11,9 @@ import io.ktor.utils.io.core.readBytes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import java.io.File
-import kotlin.IllegalArgumentException
 import java.net.InetSocketAddress
 import java.net.SocketAddress
+import java.net.SocketException
 
 object StatusServer : CliktCommand(
     help = "Run a rudimentary status server",
@@ -27,6 +27,10 @@ object StatusServer : CliktCommand(
     private val port by option(
         help = "The port to run on (default 22301)"
     ).int().default(22301)
+
+    private val attempts by option(
+        help = "The number of times to try to bind the server socket (default 5)"
+    ).int().default(5)
 
     private val allow by option(
         help = "Files containing certs to approve; may be provided multiple times"
@@ -85,33 +89,40 @@ object StatusServer : CliktCommand(
         echo("Will mark ${allow.size} certs as valid")
         echo("Will mark ${deny.size} certs as revoked")
         if (allow.isEmpty() && deny.isEmpty()) echo("No certificates passed to --allow or --deny, will mark all as UNKNOWN")
-        aSocket(ActorSelectorManager(Dispatchers.IO))
-            .udp()
-            .bind(InetSocketAddress(ip, port))
-            .use { socket ->
-                while (!socket.isClosed)
-                    (try {
-                        socket.receive()
-                    } catch (_: Throwable) {
-                        null
-                    })?.let { datagram ->
-                        try {
-                            NstpV4.CertificateStatusRequest.parseFrom(datagram.packet.readBytes())
-                        } catch (_: Throwable) {
-                            echo("Couldn't parse message from ${datagram.address}, ignoring")
-                            return@let
-                        }.let {
-                            with(responseType) { makeResponse(it) }
-                        }.also {
-                            verbosity.invoke(it, datagram.address)
-                        }?.toByteArray()?.let {
-                            try {
-                                socket.send(Datagram(ByteReadPacket(it), datagram.address))
+        for (i in 1..attempts)
+            try {
+                aSocket(ActorSelectorManager(Dispatchers.IO))
+                    .udp()
+                    .bind(InetSocketAddress(ip, port))
+                    .use { socket ->
+                        echo("Server ready at ${socket.localAddress}")
+                        while (!socket.isClosed)
+                            (try {
+                                socket.receive()
                             } catch (_: Throwable) {
-                                echo("Socket closed before a response to ${datagram.address} could be sent")
+                                null
+                            })?.let { datagram ->
+                                try {
+                                    NstpV4.CertificateStatusRequest.parseFrom(datagram.packet.readBytes())
+                                } catch (_: Throwable) {
+                                    echo("Couldn't parse message from ${datagram.address}, ignoring")
+                                    return@let
+                                }.let {
+                                    with(responseType) { makeResponse(it) }
+                                }.also {
+                                    verbosity.invoke(it, datagram.address)
+                                }?.toByteArray()?.let {
+                                    try {
+                                        socket.send(Datagram(ByteReadPacket(it), datagram.address))
+                                    } catch (_: Throwable) {
+                                        echo("Socket closed before a response to ${datagram.address} could be sent")
+                                    }
+                                }
                             }
-                        }
                     }
+                return@runBlocking
+            } catch (e: SocketException) {
+                if (i == attempts) throw e else echo("Failed with $e, retrying up to ${attempts - i} times")
             }
     }
 
